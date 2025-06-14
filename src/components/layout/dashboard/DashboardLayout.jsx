@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Icons } from "./Icons";
 
 export default function DashboardLayout({ children }) {
@@ -11,6 +11,8 @@ export default function DashboardLayout({ children }) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const { data: session } = useSession();
   const pathname = usePathname();
+
+  const router = useRouter();
 
   // Close mobile sidebar when route changes
   useEffect(() => {
@@ -138,7 +140,10 @@ export default function DashboardLayout({ children }) {
               ))}
               <li>
                 <button
-                  onClick={() => signOut({ redirect: true })}
+                  onClick={() => {
+                    signOut({ redirect: false });
+                    router.push("/auth/login");
+                  }}
                   className={`flex items-center p-3 rounded-lg hover:bg-[#0b1d51]/10 dark:hover:bg-gray-700 transition-all duration-200 w-full  ${
                     sidebarOpen ? "hover:translate-x-1 hover:shadow-sm" : ""
                   }`}
