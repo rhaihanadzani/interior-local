@@ -141,8 +141,11 @@ export default function DashboardLayout({ children }) {
               <li>
                 <button
                   onClick={() => {
-                    signOut({ redirect: false });
-                    router.push("/auth/login");
+                    signOut({
+                      redirect: true,
+                      callbackUrl:
+                        process.env.NEXTAUTH_URL || window.location.origin,
+                    });
                   }}
                   className={`flex items-center p-3 rounded-lg hover:bg-[#0b1d51]/10 dark:hover:bg-gray-700 transition-all duration-200 w-full  ${
                     sidebarOpen ? "hover:translate-x-1 hover:shadow-sm" : ""
