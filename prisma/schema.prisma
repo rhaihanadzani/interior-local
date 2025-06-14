@@ -1,0 +1,125 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+
+model User {
+  id           String        @id @default(uuid()) @db.Uuid
+  name         String
+  email        String        @unique
+  password     String
+  phone        String
+  role         Role
+  createdAt    DateTime      @default(now())
+  profileImage Image?        @relation("UserProfileImage", fields: [profileImageId], references: [id], onDelete: Cascade)
+  profileImageId Int? @unique
+
+  orders       Order[]
+  testimonials Testimonial[]
+}
+
+model Service {
+  id           Int           @id @default(autoincrement())
+  name         String
+  description  String
+  subdesc      String?
+  basePrice    Decimal?      @db.Decimal
+  imageUrl     String
+  orders       Order[]
+}
+
+model Order {
+  id             String         @id @default(uuid()) @db.Uuid
+  user           User           @relation(fields: [userId], references: [id])
+  userId         String         @db.Uuid
+  service        Service        @relation(fields: [serviceId], references: [id])
+  serviceId      Int
+  location       String
+  description    String
+  status         OrderStatus    @default(menunggu)
+  offerPrice     Decimal?       @db.Decimal
+  scheduledDate  DateTime?
+  createdAt      DateTime       @default(now())
+
+  updates        OrderUpdate[]
+  testimonial    Testimonial?
+
+}
+
+model OrderUpdate {
+  id         Int          @id @default(autoincrement())
+  order      Order        @relation(fields: [orderId], references: [id])
+  orderId    String       @db.Uuid
+  note       String
+  createdAt  DateTime     @default(now())
+
+  images     Image[]      @relation("UpdateImages")
+}
+
+model Testimonial {
+  id         Int          @id @default(autoincrement())
+  user       User         @relation(fields: [userId], references: [id])
+  userId     String       @db.Uuid
+  order      Order        @relation(fields: [orderId], references: [id])
+  orderId    String       @unique @db.Uuid
+  rating     Int
+  comment    String
+  active      Boolean      @default(false)
+
+  createdAt  DateTime     @default(now())
+}
+
+model Portfolio {
+  id          Int          @id @default(autoincrement())
+  title       String
+  description String
+  category    String?
+  createdAt   DateTime     @default(now())
+  active      Boolean      @default(false)
+
+  images      Image[]      @relation("PortfolioImages")
+}
+
+model Image {
+  id          Int            @id @default(autoincrement())
+  url         String
+  description String?
+  createdAt   DateTime       @default(now())
+
+  // Relasi ke User (profile image)
+  user        User?          @relation("UserProfileImage")
+
+  // Relasi opsional ke 3 model lainnya
+  portfolio   Portfolio?     @relation("PortfolioImages", fields: [portfolioId], references: [id], onDelete: Cascade)
+  portfolioId Int?
+
+ 
+
+  update      OrderUpdate?   @relation("UpdateImages", fields: [updateId], references: [id], onDelete: Cascade)
+  updateId    Int?
+}
+
+// ENUMS
+
+enum Role {
+  superAdmin
+  user
+  admin
+}
+
+enum OrderStatus {
+  menunggu
+  dikonfirmasi
+  diproses
+  selesai
+  ditolak
+}
