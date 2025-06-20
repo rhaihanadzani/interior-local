@@ -22,6 +22,8 @@ import {
 import { getAllOrdersAdmin } from "@/lib/services/orderService";
 import { useRouter } from "next/navigation";
 import DashboardLoading from "@/components/Loader/DashboardLoading";
+import ExportExelButton from "@/components/ExportExelButton";
+import ExportPdfButton from "@/components/ExportPdfButton";
 
 const statusColors = {
   menunggu: "bg-yellow-100 text-yellow-800",
@@ -139,6 +141,10 @@ export default function AdminOrdersPage() {
             {filteredOrders.length} pesanan ditemukan
           </span>
         </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <ExportExelButton />
+        <ExportPdfButton />
       </div>
 
       {/* Filter Controls */}
