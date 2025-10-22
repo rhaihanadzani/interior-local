@@ -18,21 +18,24 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: interior-local
     ports:
       - "3000:3000"
     environment:
-      - DATABASE_URL=postgres://postgres:123@db:5432/interior
-      - DATABASE_URL_UNPOOLED=postgres://postgres:123@db:5432/interior
-      - NEXTAUTH_SECRET=secret
-      - NEXTAUTH_URL=http://localhost:3000
-      - NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=diwhemeym
-      - NEXT_PUBLIC_CLOUDINARY_API_KEY=994636925122678
-      - CLOUDINARY_SECRET_KEY=fIZzOIDdao70lEghJoKvKVz8IpE
-    volumes:
-      - ./.next:/app/.next
-    restart: always
+      DATABASE_URL: postgres://postgres:123@db:5432/interior
+      DATABASE_URL_UNPOOLED: postgres://postgres:123@db:5432/interior
+      NEXTAUTH_SECRET: secret
+      NEXTAUTH_URL: http://localhost:3000
+      NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: diwhemeym
+      NEXT_PUBLIC_CLOUDINARY_API_KEY: 994636925122678
+      CLOUDINARY_SECRET_KEY: fIZzOIDdao70lEghJoKvKVz8IpE
     depends_on:
       - db
+    restart: always
+    # Gunakan ini kalau kamu mau develop & lihat perubahan real-time
+    volumes:
+      - .:/app
+      - /app/node_modules
 
 volumes:
   postgres_data:
