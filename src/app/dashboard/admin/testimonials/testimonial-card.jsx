@@ -41,7 +41,7 @@ export function TestimonialCard({ testimonial, onStatusChange }) {
   const serviceName = testimonial?.order?.service?.name || "Unknown Service";
   const initials = userName.charAt(0).toUpperCase();
 
-  console.log(profileImage);
+  // console.log(profileImage);
 
   return (
     <Card className="hover:shadow-lg transition-all duration-300">

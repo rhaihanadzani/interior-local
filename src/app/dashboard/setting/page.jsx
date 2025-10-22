@@ -108,7 +108,11 @@ export default function SettingsPage() {
         URL.revokeObjectURL(selectedImage.previewUrl);
       }
 
-      toast.success("Perubahan berhasil disimpan");
+      console.log(response, "response");
+
+      if (response.ok) {
+        toast.success("Perubahan berhasil disimpan");
+      }
     } catch (error) {
       toast.error(error.message || "Perubahan gagal disimpan");
     } finally {

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/auth/prisma";
-import { uploadImage, deleteImageFile } from "@/lib/image-upload";
+import { uploadImage } from "@/lib/cloudinary/uploadImage";
 
 // GET all services
 export async function GET() {
@@ -29,7 +29,8 @@ export async function POST(request) {
       return NextResponse.json({ error: "Image is required" }, { status: 400 });
     }
 
-    const uploadResult = await uploadImage(imageFile, "services");
+    // const uploadResult = await uploadImage(imageFile, "services");
+    const uploadResult = await uploadImage(imageFile, "interior");
 
     const service = await prisma.service.create({
       data: {
@@ -37,7 +38,7 @@ export async function POST(request) {
         description,
         subdesc: subdesc || null,
         basePrice: basePrice ? parseFloat(basePrice) : null,
-        imageUrl: uploadResult.filePath,
+        imageUrl: uploadResult.secure_url,
       },
     });
 

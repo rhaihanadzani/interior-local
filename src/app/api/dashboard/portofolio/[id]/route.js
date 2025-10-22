@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/auth/prisma";
-import { uploadImage, deleteImageFile } from "@/lib/image-upload";
+
+import { uploadImages } from "@/lib/cloudinary/uploadImages";
+import { deleteImageFile } from "@/lib/cloudinary/deleteImage";
 
 // GET single portfolio by ID
 export async function GET(request, { params }) {
@@ -71,7 +73,7 @@ export async function PUT(request, { params }) {
     const uploadedImages = [];
     for (const imageFile of newImages) {
       if (imageFile instanceof Blob) {
-        const uploadResult = await uploadImage(imageFile, "portfolios");
+        const uploadResult = await uploadImages(imageFile, "portfolios");
         const createdImage = await prisma.image.create({
           data: {
             url: uploadResult.filePath,
@@ -100,27 +102,32 @@ export async function PUT(request, { params }) {
   }
 }
 
-// PATCH update portfolio (partial update)
+// PATCH update portfolio (partial update)import { NextResponse } from "next/server";
+
 export async function PATCH(request, { params }) {
   try {
     const formData = await request.formData();
+
     const title = formData.get("title");
     const description = formData.get("description");
     const active = formData.get("active");
     const category = formData.get("category") || "";
 
     const newImages = formData.getAll("newImages");
-    const existingImageIds = JSON.parse(formData.get("existingImageIds") || []);
-    const deletedImageIds = JSON.parse(formData.get("deletedImageIds") || []);
+    const existingImageIds = JSON.parse(
+      formData.get("existingImageIds") || "[]"
+    );
+    const deletedImageIds = JSON.parse(formData.get("deletedImageIds") || "[]");
 
-    // Prepare update data
+    // Siapkan data untuk update
     const updateData = {};
     if (title) updateData.title = title;
     if (description) updateData.description = description;
-    if (active !== null) updateData.active = active === "true";
+    if (active !== undefined && active !== null && active !== "")
+      updateData.active = active === "true";
     if (category) updateData.category = category;
 
-    // Delete only specified images
+    // 🔹 Hapus gambar yang ditandai untuk dihapus
     if (deletedImageIds.length > 0) {
       const imagesToDelete = await prisma.image.findMany({
         where: { id: { in: deletedImageIds } },
@@ -130,35 +137,42 @@ export async function PATCH(request, { params }) {
         where: { id: { in: deletedImageIds } },
       });
 
-      // Delete files
+      // Hapus file dari Cloudinary
       for (const image of imagesToDelete) {
         await deleteImageFile(image.url);
       }
     }
 
-    // Update portfolio data
+    // 🔹 Update data portfolio
     const updatedPortfolio = await prisma.portfolio.update({
       where: { id: parseInt(params.id) },
       data: updateData,
     });
 
-    // Upload new images
+    // 🔹 Upload gambar baru
     const uploadedImages = [];
     for (const imageFile of newImages) {
       if (imageFile instanceof Blob) {
-        const uploadResult = await uploadImage(imageFile, "portfolios");
+        const bytes = await imageFile.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+
+        const uploadResult = await uploadImages(buffer, "interior");
+
         const createdImage = await prisma.image.create({
           data: {
-            url: uploadResult.filePath,
+            url: uploadResult.secure_url,
             description: "Portfolio image",
-            portfolio: { connect: { id: updatedPortfolio.id } },
+            portfolio: {
+              connect: { id: updatedPortfolio.id },
+            },
           },
         });
+
         uploadedImages.push(createdImage);
       }
     }
 
-    // Get all images (existing + new)
+    // 🔹 Ambil semua gambar terbaru (existing + baru)
     const images = await prisma.image.findMany({
       where: { portfolioId: updatedPortfolio.id },
     });
@@ -170,7 +184,10 @@ export async function PATCH(request, { params }) {
   } catch (error) {
     console.error("Error patching portfolio:", error);
     return NextResponse.json(
-      { error: "Failed to partially update portfolio" },
+      {
+        error: "Failed to partially update portfolio",
+        details: error.message,
+      },
       { status: 500 }
     );
   }

@@ -1,9 +1,13 @@
 import { AuthUserSession } from "@/lib/auth/authUserSession";
 
 import { NextResponse } from "next/server";
+import { uploadImage } from "@/lib/cloudinary/uploadImage";
+import { deleteImageFile } from "@/lib/cloudinary/deleteImage";
 import path from "path";
 import fs from "fs";
 import { PrismaClient } from "@prisma/client";
+import { uploadProfileImage } from "@/lib/cloudinary/uploadProfileImage";
+import { deleteProfileImageFile } from "@/lib/cloudinary/deleteProfileImage";
 
 const prisma = new PrismaClient();
 export const GET = async () => {
@@ -24,16 +28,15 @@ export async function PATCH(request) {
   try {
     const formData = await request.formData();
 
-    // Dapatkan data dari form
     const name = formData.get("name");
     const email = formData.get("email");
     const phone = formData.get("phone");
     const userId = formData.get("userId");
     const imageFile = formData.get("profileImage");
 
-    console.log("Received data:", { name, email, phone, userId });
+    // console.log("Received data:", { name, email, phone, userId });
 
-    // Validasi data wajib
+    // Validasi input wajib
     if (!name || !email || !userId) {
       return NextResponse.json(
         { message: "Nama dan email harus diisi" },
@@ -41,77 +44,54 @@ export async function PATCH(request) {
       );
     }
 
-    let imagePath = null;
+    let imageUrl = null;
 
-    // Proses upload gambar jika ada
+    // 🔹 Upload gambar ke Cloudinary jika ada
     if (imageFile && imageFile !== "undefined") {
-      console.log("Processing image file...");
+      // console.log("Uploading new profile image to Cloudinary...");
 
-      // Dapatkan ekstensi file dari nama file atau type
-      let fileExt = "jpg";
-      const fileName = imageFile.name;
-      if (fileName) {
-        fileExt = fileName.split(".").pop();
-      } else if (imageFile.type) {
-        fileExt = imageFile.type.split("/").pop();
+      if (!(imageFile instanceof Blob)) {
+        return NextResponse.json(
+          { message: "File gambar tidak valid" },
+          { status: 400 }
+        );
       }
 
-      // Buat direktori jika belum ada
-      const uploadDir = path.join(process.cwd(), "public/uploads/profile");
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      }
-
-      // Generate nama file unik
-      const newFileName = `profile-${userId}-${Date.now()}.${fileExt}`;
-      imagePath = `/uploads/profile/${newFileName}`;
-
-      // Convert file to buffer dan simpan
       const bytes = await imageFile.arrayBuffer();
       const buffer = Buffer.from(bytes);
-      fs.writeFileSync(path.join(uploadDir, newFileName), buffer);
+      const mimetype = imageFile.type || "image/jpeg";
 
-      console.log("Image saved at:", imagePath);
+      const uploadResult = await uploadProfileImage(
+        buffer,
+        "interior",
+        mimetype
+      );
+      imageUrl = uploadResult.secure_url;
+      // console.log("Image uploaded to:", imageUrl);
     }
 
-    // Update data user
-    const updateData = {
-      name,
-      email,
-      phone,
-    };
+    // 🔹 Ambil data user lama
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { profileImage: true },
+    });
 
-    // Jika ada gambar baru, update relasi image
-    if (imagePath) {
-      console.log("Updating profile image...");
+    const updateData = { name, email, phone };
 
-      // Cek apakah user sudah punya profile image
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        include: { profileImage: true },
-      });
-
+    // 🔹 Jika ada gambar baru
+    if (imageUrl) {
       if (user?.profileImage) {
-        // Hapus file lama jika ada
-        const oldImagePath = path.join(
-          process.cwd(),
-          "public",
-          user.profileImage.url
-        );
-        if (fs.existsSync(oldImagePath)) {
-          fs.unlinkSync(oldImagePath);
-        }
+        // console.log("Deleting old Cloudinary image...");
+        await deleteProfileImageFile(user.profileImage.url);
 
-        // Update existing image
         await prisma.image.update({
           where: { id: user.profileImage.id },
-          data: { url: imagePath },
+          data: { url: imageUrl },
         });
       } else {
-        // Create new image
         const newImage = await prisma.image.create({
           data: {
-            url: imagePath,
+            url: imageUrl,
             description: "Profile image",
             user: { connect: { id: userId } },
           },
@@ -120,6 +100,7 @@ export async function PATCH(request) {
       }
     }
 
+    // 🔹 Update user
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: updateData,

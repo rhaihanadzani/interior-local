@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/auth/prisma";
-import { uploadImage, deleteImageFile } from "@/lib/image-upload";
+
+import cloudinary from "@/lib/cloudinary/cloudinary";
+import { uploadImage } from "@/lib/cloudinary/uploadImage";
+
+// import { uploadImage, deleteImageFile } from "@/lib/image-upload";
 
 // GET single service by ID
 export async function GET(request, { params }) {
@@ -22,8 +26,8 @@ export async function GET(request, { params }) {
   }
 }
 
-// PUT update service
 export async function PUT(request, { params }) {
+  // console.log("params", params);
   try {
     const formData = await request.formData();
     const name = formData.get("name");
@@ -32,6 +36,15 @@ export async function PUT(request, { params }) {
     const basePrice = formData.get("basePrice");
     const imageFile = formData.get("image");
 
+    const id = Number(params.id);
+    if (!id || isNaN(id)) {
+      return NextResponse.json(
+        { error: "Invalid service ID" },
+        { status: 400 }
+      );
+    }
+
+    // Data yang akan diupdate
     const updateData = {
       name,
       description,
@@ -39,63 +52,94 @@ export async function PUT(request, { params }) {
       basePrice: basePrice ? parseFloat(basePrice) : null,
     };
 
-    // Handle image update if new image is provided
+    // Jika user upload gambar baru
     if (imageFile && imageFile instanceof Blob) {
-      // Get current service to delete old image
+      // Ambil data lama untuk hapus gambar di Cloudinary
       const currentService = await prisma.service.findUnique({
-        where: { id: parseInt(params.id) },
+        where: { id },
       });
 
+      // Hapus gambar lama di Cloudinary jika ada
       if (currentService?.imageUrl) {
-        await deleteImageFile(currentService.imageUrl);
+        // Ambil public_id dari URL Cloudinary lama
+        const parts = currentService.imageUrl.split("/");
+        const publicIdWithExt = parts.slice(-2).join("/").split(".")[0]; // contoh: services/abc123
+
+        // console.log("publicIdWithExt", publicIdWithExt);
+        try {
+          await cloudinary.uploader.destroy(publicIdWithExt);
+        } catch (err) {
+          console.warn("Gagal menghapus gambar lama:", err.message);
+        }
       }
 
-      const uploadResult = await uploadImage(imageFile, "services");
-      updateData.imageUrl = uploadResult.filePath;
+      // Upload gambar baru ke Cloudinary
+      const uploadResult = await uploadImage(imageFile, "interior");
+      updateData.imageUrl = uploadResult.secure_url;
     }
 
+    // Update database
     const updatedService = await prisma.service.update({
-      where: { id: parseInt(params.id) },
+      where: { id },
       data: updateData,
     });
 
-    return NextResponse.json(updatedService);
+    return NextResponse.json(updatedService, { status: 200 });
   } catch (error) {
     console.error("Error updating service:", error);
     return NextResponse.json(
-      { error: "Failed to update service" },
+      { error: "Failed to update service", details: error.message },
       { status: 500 }
     );
   }
 }
 
-// DELETE service
 export async function DELETE(request, { params }) {
   try {
-    // Get service first to delete image file
+    const id = Number(params.id);
+    if (!id || isNaN(id)) {
+      return NextResponse.json(
+        { error: "Invalid service ID" },
+        { status: 400 }
+      );
+    }
+
+    // 1. Ambil data service
     const service = await prisma.service.findUnique({
-      where: { id: parseInt(params.id) },
+      where: { id },
     });
 
     if (!service) {
       return NextResponse.json({ error: "Service not found" }, { status: 404 });
     }
 
-    // Delete image file
+    // 2. Hapus gambar di Cloudinary (jika ada)
     if (service.imageUrl) {
-      await deleteImageFile(service.imageUrl);
+      try {
+        // Ekstrak public_id dari URL Cloudinary
+        // contoh: https://res.cloudinary.com/demo/image/upload/v1234567890/services/abc123.jpg
+        const parts = service.imageUrl.split("/");
+        const publicIdWithExt = parts.slice(-2).join("/").split(".")[0]; // contoh: services/abc123
+
+        await cloudinary.uploader.destroy(publicIdWithExt);
+      } catch (err) {
+        console.warn("Gagal menghapus gambar Cloudinary:", err.message);
+      }
     }
 
-    // Delete service from database
+    // 3. Hapus data service dari database
     await prisma.service.delete({
-      where: { id: parseInt(params.id) },
+      where: { id },
     });
 
-    return NextResponse.json({ message: "Service deleted successfully" });
+    return NextResponse.json(
+      { message: "Service deleted successfully" },
+      { status: 200 }
+    );
   } catch (error) {
     console.error("Error deleting service:", error);
     return NextResponse.json(
-      { error: "Failed to delete service" },
+      { error: "Failed to delete service", details: error.message },
       { status: 500 }
     );
   }

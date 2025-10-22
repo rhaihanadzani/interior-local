@@ -35,7 +35,7 @@ export async function POST(request) {
       },
     });
 
-    console.log("testimonial", testimonial);
+    // console.log("testimonial", testimonial);
 
     return NextResponse.json({ message: "success", status: 200, testimonial });
   } catch (error) {

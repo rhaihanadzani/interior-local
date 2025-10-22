@@ -42,6 +42,7 @@ export function AvatarEditor({ imageUrl, name, onImageChange }) {
         </Avatar>
 
         <button
+          type="button"
           onClick={() => fileInputRef.current.click()}
           className="absolute bottom-0 right-0 bg-primary rounded-full p-2 text-white hover:bg-primary/90 transition-all duration-300 group-hover:opacity-100 opacity-0"
         >

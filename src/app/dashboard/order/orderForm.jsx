@@ -49,8 +49,8 @@ export default function OrderForm({ services }) {
     e.preventDefault();
     setIsSubmitting(true);
 
-    console.log("formData", formData);
-    console.log("formData", date);
+    // console.log("formData", formData);
+    // console.log("formData", date);
 
     if (
       !formData.serviceId ||

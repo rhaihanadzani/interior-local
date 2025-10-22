@@ -33,8 +33,8 @@ export const authOptions = {
           throw new Error("Email and password are required");
         }
 
-        console.log("email", credentials.email);
-        console.log("password", credentials.password);
+        // console.log("email", credentials.email);
+        // console.log("password", credentials.password);
 
         try {
           // Find user in database
@@ -44,7 +44,7 @@ export const authOptions = {
             },
           });
 
-          console.log("user", user);
+          // console.log("user", user);
 
           if (!user) {
             throw new Error("Invalid email or password");
@@ -56,7 +56,7 @@ export const authOptions = {
             user.password
           );
 
-          console.log("isValid", isValid);
+          // console.log("isValid", isValid);
 
           if (!isValid) {
             throw new Error("Invalid email or password");

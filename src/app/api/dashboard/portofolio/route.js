@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/auth/prisma";
 import { uploadImage, deleteImageFile } from "@/lib/image-upload";
+import { uploadImages } from "@/lib/cloudinary/uploadImages";
 
 // GET all portfolios with their images
 export async function GET() {
@@ -45,10 +46,13 @@ export async function POST(request) {
     const uploadedImages = [];
     for (const imageFile of images) {
       if (imageFile instanceof Blob) {
-        const uploadResult = await uploadImage(imageFile, "portfolios");
+        const bytes = await imageFile.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+
+        const uploadResult = await uploadImages(buffer, "interior");
         const createdImage = await prisma.image.create({
           data: {
-            url: uploadResult.filePath,
+            url: uploadResult.secure_url,
             description: "Portfolio image",
             portfolio: {
               connect: {

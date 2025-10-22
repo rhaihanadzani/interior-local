@@ -207,7 +207,7 @@ export default function AdminPortfolioPage() {
           }
         });
 
-        console.log("selectedImages", selectedImages);
+        // console.log("selectedImages", selectedImages);
 
         // Panggil API create
         const newPortfolio = await createPortfolio(formDataToSend);

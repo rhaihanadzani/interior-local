@@ -1,0 +1,38 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:15-alpine
+    restart: always
+    container_name: db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "123"
+      POSTGRES_DB: interior
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgres://postgres:123@db:5432/interior
+      - DATABASE_URL_UNPOOLED=postgres://postgres:123@db:5432/interior
+      - NEXTAUTH_SECRET=secret
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=diwhemeym
+      - NEXT_PUBLIC_CLOUDINARY_API_KEY=994636925122678
+      - CLOUDINARY_SECRET_KEY=fIZzOIDdao70lEghJoKvKVz8IpE
+    volumes:
+      - ./.next:/app/.next
+    restart: always
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:

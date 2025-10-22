@@ -5,7 +5,7 @@ export async function PATCH(request, { params }) {
     const { id } = params;
     const { rating, comment } = await request.json();
 
-    console.log("received data", { id, rating, comment });
+    // console.log("received data", { id, rating, comment });
 
     const updatedTestimonial = await prisma.testimonial.update({
       where: { id: parseInt(id) },

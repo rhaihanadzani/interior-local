@@ -294,9 +294,9 @@ const NoSessionLayout = ({ children }) => {
                     className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-[#4DA8DA] transition-colors"
                     aria-label={social.name}
                   >
-                    <svg className="w-5 h-5">
-                      <use href={`/icons/social-icons.svg#${social.icon}`} />
-                    </svg>
+                    <p className="text-white text-sm ">
+                      {social.name.charAt(0).toUpperCase()}
+                    </p>
                   </a>
                 ))}
               </div>
