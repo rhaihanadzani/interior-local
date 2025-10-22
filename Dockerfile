@@ -1,36 +1,23 @@
-# ==== BUILD STAGE ====
-FROM node:20-alpine AS builder
+# ==== BASE IMAGE ====
+FROM node:20-alpine
 
-WORKDIR /work
+# Set workdir di container
+WORKDIR /app
 
-# Salin file package
+# Copy package.json dan package-lock.json
 COPY package*.json ./
 
-# Install dependencies (termasuk devDependencies untuk build)
-RUN npm ci
+# Install semua dependency (termasuk devDependencies)
+RUN npm install
 
-# Salin semua file proyek
+# Copy semua source code (untuk npx prisma generate & run dev)
 COPY . .
 
 # Generate Prisma Client
 RUN npx prisma generate
 
-# Build Next.js app
-RUN npm run build
-
-# ==== RUN STAGE ====
-FROM node:20-alpine AS runner
-
-WORKDIR /app
-
-ENV NODE_ENV=production
-
-# Copy only the necessary files
-COPY --from=builder /work/package*.json ./
-COPY --from=builder /work/node_modules ./node_modules
-COPY --from=builder /work/.next ./.next
-COPY --from=builder /work/public ./public
-COPY --from=builder /work/prisma ./prisma
-
+# Expose port Next.js
 EXPOSE 3000
-CMD ["npm", "run", "start"]
+
+# Jalankan perintah default
+CMD ["npm", "run", "dev"]

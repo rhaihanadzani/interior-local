@@ -32,7 +32,6 @@ services:
     depends_on:
       - db
     restart: always
-    # Gunakan ini kalau kamu mau develop & lihat perubahan real-time
     volumes:
       - .:/app
       - /app/node_modules
